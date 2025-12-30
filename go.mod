@@ -1,6 +1,6 @@
 module github.com/sami/cluseg
 
-go 1.25.5
+go 1.23.0
 
 require github.com/spf13/viper v1.21.0
 
