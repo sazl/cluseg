@@ -56,10 +56,31 @@ func TestFormatCountdown(t *testing.T) {
 	}
 }
 
+func TestFormatTokens(t *testing.T) {
+	tests := []struct {
+		tokens   int
+		expected string
+	}{
+		{500, "500"},
+		{1500, "1k"},
+		{250000, "250k"},
+		{1500000, "1.5M"},
+	}
+	for _, tt := range tests {
+		result := FormatTokens(tt.tokens)
+		if result != tt.expected {
+			t.Errorf("tokens=%d: expected %q, got %q", tt.tokens, tt.expected, result)
+		}
+	}
+}
+
 func TestRenderStatus_Normal(t *testing.T) {
-	status := RenderStatus(67, time.Hour*4+32*time.Minute, limits.LevelNormal, false, false)
+	status := RenderStatus(67, 335000, time.Hour*4+32*time.Minute, limits.LevelNormal, false, false)
 	if !strings.Contains(status, "67%") {
 		t.Error("expected percentage in output")
+	}
+	if !strings.Contains(status, "335k") {
+		t.Error("expected token count in output")
 	}
 	if !strings.Contains(status, "4h 32m") {
 		t.Error("expected countdown in output")
@@ -67,23 +88,29 @@ func TestRenderStatus_Normal(t *testing.T) {
 }
 
 func TestRenderStatus_Warning(t *testing.T) {
-	status := RenderStatus(85, time.Hour*2, limits.LevelWarning, false, false)
+	status := RenderStatus(85, 425000, time.Hour*2, limits.LevelWarning, false, false)
 	if !strings.Contains(status, "⚠") {
 		t.Error("expected warning indicator")
 	}
 }
 
 func TestRenderStatus_Critical(t *testing.T) {
-	status := RenderStatus(98, time.Hour, limits.LevelCritical, false, false)
+	status := RenderStatus(98, 490000, time.Hour, limits.LevelCritical, false, false)
 	if !strings.Contains(status, "🔴") {
 		t.Error("expected critical indicator")
 	}
 }
 
 func TestRenderStatus_Compact(t *testing.T) {
-	status := RenderStatus(67, time.Hour*4, limits.LevelNormal, true, false)
-	// Compact mode: just "67% 4h 0m"
+	status := RenderStatus(67, 335000, time.Hour*4, limits.LevelNormal, true, false)
+	// Compact mode shows tokens and percentage
 	if strings.Contains(status, "█") {
 		t.Error("compact mode should not have progress bar")
+	}
+	if !strings.Contains(status, "335k") {
+		t.Error("expected token count in compact mode")
+	}
+	if !strings.Contains(status, "67%") {
+		t.Error("expected percentage in compact mode")
 	}
 }

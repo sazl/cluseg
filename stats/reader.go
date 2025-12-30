@@ -13,6 +13,7 @@ type Stats struct {
 	LastUpdated time.Time
 	IsStale     bool
 	Date        string
+	DataDate    string // The actual date of the token data (may differ from today)
 }
 
 type statsCache struct {
@@ -43,22 +44,37 @@ func ReadStats(path string) (*Stats, error) {
 	}
 
 	today := time.Now().Format("2006-01-02")
-	var todayTokens int
+	var tokens int
+	var dataDate string
+
+	// First, try to find today's tokens
 	for _, dt := range cache.DailyModelTokens {
 		if dt.Date == today {
-			for _, tokens := range dt.TokensByModel {
-				todayTokens += tokens
+			for _, t := range dt.TokensByModel {
+				tokens += t
 			}
+			dataDate = today
 			break
 		}
+	}
+
+	// If no data for today, use the most recent date available
+	if tokens == 0 && len(cache.DailyModelTokens) > 0 {
+		// Find the most recent entry (last in the array, sorted by date)
+		mostRecent := cache.DailyModelTokens[len(cache.DailyModelTokens)-1]
+		for _, t := range mostRecent.TokensByModel {
+			tokens += t
+		}
+		dataDate = mostRecent.Date
 	}
 
 	isStale := time.Since(info.ModTime()) > 5*time.Minute
 
 	return &Stats{
-		TodayTokens: todayTokens,
+		TodayTokens: tokens,
 		LastUpdated: info.ModTime(),
 		IsStale:     isStale,
 		Date:        cache.LastComputedDate,
+		DataDate:    dataDate,
 	}, nil
 }

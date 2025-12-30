@@ -62,3 +62,54 @@ func TestReadStats_StaleFile(t *testing.T) {
 		t.Error("expected IsStale to be true for old file")
 	}
 }
+
+func TestReadStats_FallbackToMostRecentDate(t *testing.T) {
+	// When today's date isn't in the file, should use most recent available date
+	tmpDir := t.TempDir()
+	statsFile := filepath.Join(tmpDir, "stats-cache.json")
+	content := `{
+		"version": 1,
+		"lastComputedDate": "2025-12-29",
+		"dailyModelTokens": [
+			{"date": "2025-12-28", "tokensByModel": {"claude-sonnet": 100000}},
+			{"date": "2025-12-29", "tokensByModel": {"claude-sonnet": 250284, "claude-opus": 239830}}
+		]
+	}`
+	if err := os.WriteFile(statsFile, []byte(content), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	stats, err := ReadStats(statsFile)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// Should get tokens from most recent date (2025-12-29): 250284 + 239830 = 490114
+	expectedTokens := 490114
+	if stats.TodayTokens != expectedTokens {
+		t.Errorf("expected %d tokens from fallback, got %d", expectedTokens, stats.TodayTokens)
+	}
+	if stats.DataDate != "2025-12-29" {
+		t.Errorf("expected DataDate to be 2025-12-29, got %s", stats.DataDate)
+	}
+}
+
+func TestReadStats_RealFixture(t *testing.T) {
+	// Test using the real stats-cache.json fixture
+	stats, err := ReadStats("../testdata/stats-cache.json")
+	if err != nil {
+		t.Fatalf("unexpected error reading fixture: %v", err)
+	}
+
+	// The fixture has data for 2025-12-29 with 250284 + 239830 = 490114 tokens
+	expectedTokens := 490114
+	if stats.TodayTokens != expectedTokens {
+		t.Errorf("expected %d tokens from fixture, got %d", expectedTokens, stats.TodayTokens)
+	}
+	if stats.DataDate != "2025-12-29" {
+		t.Errorf("expected DataDate to be 2025-12-29, got %s", stats.DataDate)
+	}
+	if stats.Date != "2025-12-29" {
+		t.Errorf("expected Date (lastComputedDate) to be 2025-12-29, got %s", stats.Date)
+	}
+}

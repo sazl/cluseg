@@ -41,8 +41,19 @@ func FormatCountdown(d time.Duration) string {
 	return fmt.Sprintf("%dm", minutes)
 }
 
-func RenderStatus(percentage int, countdown time.Duration, level limits.WarningLevel, compact bool, stale bool) string {
+func FormatTokens(tokens int) string {
+	if tokens >= 1000000 {
+		return fmt.Sprintf("%.1fM", float64(tokens)/1000000)
+	}
+	if tokens >= 1000 {
+		return fmt.Sprintf("%dk", tokens/1000)
+	}
+	return fmt.Sprintf("%d", tokens)
+}
+
+func RenderStatus(percentage int, tokens int, countdown time.Duration, level limits.WarningLevel, compact bool, stale bool) string {
 	countdownStr := FormatCountdown(countdown)
+	tokensStr := FormatTokens(tokens)
 
 	var indicator string
 	switch level {
@@ -58,16 +69,17 @@ func RenderStatus(percentage int, countdown time.Duration, level limits.WarningL
 	}
 
 	if compact {
-		return fmt.Sprintf("%d%% %s%s%s", percentage, countdownStr, staleStr, indicator)
+		return fmt.Sprintf("%s (%d%%) %s%s%s", tokensStr, percentage, countdownStr, staleStr, indicator)
 	}
 
 	bar := RenderProgressBar(percentage, barWidth)
 	barStyle := GetBarStyle(level)
 	textStyle := GetTextStyle(level)
 
-	return fmt.Sprintf(" %s %s │ resets in %s%s%s",
+	return fmt.Sprintf(" %s %s │ %s │ resets in %s%s%s",
 		barStyle.Render(bar),
 		textStyle.Render(fmt.Sprintf("%d%%", percentage)),
+		tokensStr,
 		countdownStr,
 		staleStr,
 		indicator,

@@ -115,5 +115,5 @@ func (m Model) View() string {
 		return RenderNoLimit(m.usage.Tokens, m.countdown, m.stale)
 	}
 
-	return RenderStatus(m.usage.Percentage, m.countdown, m.level, m.cfg.Display.Compact, m.stale)
+	return RenderStatus(m.usage.Percentage, m.usage.Tokens, m.countdown, m.level, m.cfg.Display.Compact, m.stale)
 }
