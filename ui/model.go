@@ -88,8 +88,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m Model) calculateCountdown() time.Duration {
 	now := time.Now()
-	resetTime, _ := time.Parse("15:04", m.cfg.Limits.ResetTime)
-	reset := time.Date(now.Year(), now.Month(), now.Day(), resetTime.Hour(), resetTime.Minute(), 0, 0, time.UTC)
+	resetTime, err := time.Parse("15:04", m.cfg.Limits.ResetTime)
+	if err != nil {
+		// Default to midnight if parse fails
+		resetTime, _ = time.Parse("15:04", "00:00")
+	}
+	reset := time.Date(now.Year(), now.Month(), now.Day(), resetTime.Hour(), resetTime.Minute(), 0, 0, now.Location())
 
 	if now.After(reset) {
 		reset = reset.Add(24 * time.Hour)
